@@ -112,14 +112,6 @@ func GetJwt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// //TEMP CODE TEMP CODE TEMP CODE TEMP CODE TEMP
-	// if user.UserName != "ninoverhaegh" || user.Password != "1234" {
-	// 	http.Error(w, "credentials are incorrect", http.StatusUnauthorized)
-	// 	fmt.Println(err)
-	// 	return
-	// }
-	// //TEMP CODE TEMP CODE TEMP CODE TEMP CODE TEMP
-
 	fmt.Println("Credentials are correct!")
 
 	if r.Header["Access"] != nil {
