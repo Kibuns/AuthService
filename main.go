@@ -17,6 +17,7 @@ import (
 )
 
 var SECRET = []byte("super-secret-auth-key")
+const api_key_required = false;
 var api_key = "1234"
 
 func main() {
@@ -103,10 +104,10 @@ func GetJwt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//find the user credentials in DB
+	//find the user credentials in DB and check
 	userCred, err := DAL.SearchUser(user.UserName)
 	if err != nil || userCred["password"].(string) != user.Password {
-		http.Error(w, "Incorrect credentials", http.StatusUnauthorized)
+		http.Error(w, "incorrect credentials", http.StatusUnauthorized)
 		fmt.Println("******ERROR******")
 		// fmt.Println(err)
 		return
@@ -114,17 +115,32 @@ func GetJwt(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Credentials are correct!")
 
-	if r.Header["Access"] != nil {
-		if r.Header["Access"][0] != api_key {
-			return
-		} else {
-			token, err := CreateJWT()
-			if err != nil {
+	if api_key_required{
+		if r.Header["Access"] != nil {
+			if r.Header["Access"][0] != api_key {
+				fmt.Println("Incorrect api key")
+				http.Error(w, "incorrect API key", http.StatusUnauthorized)
 				return
+			} else {
+				token, err := CreateJWT()
+				if err != nil {
+					return
+				}
+				fmt.Fprint(w, token)
 			}
-			fmt.Fprint(w, token)
+		} else {
+			fmt.Println("No api key found")
+			http.Error(w, "no API key found", http.StatusUnauthorized)
 		}
+	} else{
+		token, err := CreateJWT()
+		if err != nil {
+			return
+		}
+		fmt.Fprint(w, token)
 	}
+	
+	
 }
 
 
