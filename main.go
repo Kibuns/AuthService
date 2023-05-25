@@ -46,13 +46,13 @@ func returnUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 
-func CreateJWT() (string, error) {
+func CreateJWT(username string) (string, error) {
 
 	token := jwt.New(jwt.SigningMethodHS256)
 
 	claims := token.Claims.(jwt.MapClaims)
 	claims["exp"] = time.Now().Add(time.Hour).Unix()
-	claims["username"] = "test"
+	claims["username"] = username
 
 	tokenStr, err := token.SignedString(SECRET)
 
@@ -66,28 +66,25 @@ func CreateJWT() (string, error) {
 
 func ValidateJWT(next func(w http.ResponseWriter, r* http.Request)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
+		fmt.Println("validating jwt")
 		if r.Header["Token"] != nil {
 			token, err := jwt.Parse(r.Header["Token"][0], func(t *jwt.Token) (interface{}, error) {
 				_, ok := t.Method.(*jwt.SigningMethodHMAC)
 				if !ok {
-					w.WriteHeader(http.StatusUnauthorized)
-					w.Write([]byte("not authorized"))
+					http.Error(w, "invalid token", http.StatusUnauthorized)
 				}
 				return SECRET, nil
 			})
 
 			if err != nil {
-				w.WriteHeader(http.StatusUnauthorized)
-				w.Write([]byte("not authorized: " + err.Error()))
+				http.Error(w, "error while validating token", http.StatusBadRequest)
 			}
 
 			if token.Valid {
 				next(w, r)
 			}
 		} else {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("not authorized"))
+			http.Error(w, "token header not present", http.StatusBadRequest)
 		}
 	})
 }
@@ -122,7 +119,7 @@ func GetJwt(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "incorrect API key", http.StatusUnauthorized)
 				return
 			} else {
-				token, err := CreateJWT()
+				token, err := CreateJWT(user.UserName)
 				if err != nil {
 					return
 				}
@@ -133,7 +130,7 @@ func GetJwt(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "no API key found", http.StatusUnauthorized)
 		}
 	} else{
-		token, err := CreateJWT()
+		token, err := CreateJWT(user.UserName)
 		if err != nil {
 			return
 		}
@@ -141,6 +138,29 @@ func GetJwt(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	
+}
+
+func getUsernameFromTokenHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("getting username")
+	// Get the token from the "Token" header
+	tokenStr := r.Header.Get("Token")
+	if tokenStr == "" {
+		http.Error(w, "Token header missing", http.StatusBadRequest)
+		return
+	}
+
+	// Call the function to retrieve the "username" claim from the token
+	username, err := getUsernameFromToken(tokenStr)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	fmt.Println(username)
+
+	// Return the "username" claim in the response
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(username))
 }
 
 
@@ -157,6 +177,47 @@ func handleRequests() {
 	myRouter.Handle("/api", ValidateJWT(Home))
 	myRouter.HandleFunc("/jwt", GetJwt)
 	myRouter.HandleFunc("/get/{username}", returnUser)
+	myRouter.Handle("/getusername", ValidateJWT(getUsernameFromTokenHandler))
 
 	log.Fatal(http.ListenAndServe(":3500", myRouter))
+}
+
+func validateToken(tokenStr string) bool {
+	// Parse the token
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		// Validate the signing method
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("invalid signing method")
+		}
+		// Return the secret used for signing
+		return []byte(SECRET), nil
+	})
+
+	if err != nil || !token.Valid {
+		// Token validation failed
+		return false
+	}
+
+	return true
+}
+
+func getUsernameFromToken(tokenStr string) (string, error) {
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("invalid signing method")
+		}
+		return []byte(SECRET), nil
+	})
+
+	if err != nil || !token.Valid {
+		return "", fmt.Errorf("invalid token")
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		if username, ok := claims["username"].(string); ok {
+			return username, nil
+		}
+	}
+
+	return "", fmt.Errorf("username claim not found in token")
 }
