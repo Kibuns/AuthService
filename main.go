@@ -179,7 +179,7 @@ func handleRequests() {
 	myRouter.HandleFunc("/get/{username}", returnUser)
 	myRouter.Handle("/getusername", ValidateJWT(getUsernameFromTokenHandler))
 
-	log.Fatal(http.ListenAndServe(":3500", myRouter))
+	log.Fatal(http.ListenAndServe(":8083", myRouter))
 }
 
 func validateToken(tokenStr string) bool {
