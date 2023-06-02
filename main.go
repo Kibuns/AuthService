@@ -28,7 +28,8 @@ func main() {
     signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
     // start the goroutine to receive messages from the queue
-    go receive()
+    go receiveCredentials()
+	go receiveDeleted()
 
     // start the goroutine to handle API requests
     go handleRequests()
