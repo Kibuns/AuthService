@@ -83,6 +83,18 @@ func SearchUser(username string) (primitive.M, error) {
 //----Update----
 
 //----Delete----
+func DeleteAllOfUser(username string) {
+    userCollection := client.Database("AuthDB").Collection("credentials")
+
+    // Define the filter to match the username
+    filter := bson.M{"username": username}
+
+    // Delete all documents that match the filter
+    _, err := userCollection.DeleteMany(context.TODO(), filter)
+    if err != nil {
+        // Handle the error
+    }
+}
 
 // other
 func newClient() (value mongo.Client) {

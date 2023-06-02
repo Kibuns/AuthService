@@ -91,6 +91,12 @@ func ValidateJWT(next func(w http.ResponseWriter, r* http.Request)) http.Handler
 	})
 }
 
+func deleteUser(w http.ResponseWriter, r *http.Request) {
+	var idParam string = mux.Vars(r)["user"]
+	DAL.DeleteAllOfUser(idParam)
+	fmt.Fprintf(w, "deleted everything from user: " + idParam)
+}
+
 func GetJwt(w http.ResponseWriter, r *http.Request) {
 	body := r.Body
 	fmt.Println("Checking credentials")
@@ -187,6 +193,7 @@ func handleRequests() {
 	myRouter.HandleFunc("/", Home)
 	myRouter.Handle("/api", ValidateJWT(Home))
 	myRouter.HandleFunc("/jwt", GetJwt)
+	myRouter.HandleFunc("/delete/{user}", deleteUser)
 	myRouter.HandleFunc("/get/{username}", returnUser)
 	myRouter.Handle("/getusername", ValidateJWT(getUsernameFromTokenHandler))
 
