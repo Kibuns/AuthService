@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -103,9 +105,18 @@ func GetJwt(w http.ResponseWriter, r *http.Request) {
 
 	//find the user credentials in DB and check
 	userCred, err := DAL.SearchUser(user.UserName)
-	if err != nil || userCred["password"].(string) != user.Password {
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	var encryptedPassword = userCred["password"].(string)
+
+	var hashedUserInput = sha256.Sum256([]byte(user.Password))
+	var hashedString = hex.EncodeToString(hashedUserInput[:])
+
+	if err != nil || encryptedPassword != hashedString {
 		http.Error(w, "incorrect credentials", http.StatusUnauthorized)
-		fmt.Println("******ERROR******")
+		fmt.Println(encryptedPassword + " does not equal " + hashedString)
 		// fmt.Println(err)
 		return
 	}
