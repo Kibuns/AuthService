@@ -113,7 +113,7 @@ func GetJwt(w http.ResponseWriter, r *http.Request) {
 	//find the user credentials in DB and check
 	userCred, err := DAL.SearchUser(user.UserName)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "incorrect credentials", http.StatusUnauthorized)
 		return
 	}
 	var encryptedPassword = userCred["password"].(string)
@@ -154,8 +154,6 @@ func GetJwt(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Fprint(w, token)
 	}
-	
-	
 }
 
 func getUsernameFromTokenHandler(w http.ResponseWriter, r *http.Request) {
