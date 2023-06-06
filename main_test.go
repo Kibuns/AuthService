@@ -164,3 +164,20 @@ func TestEndpointWithValidJWT(t *testing.T) {
 		t.Errorf("Expected status %d, but got %d", http.StatusOK, rr.Code)
 	}
 }
+
+func TestJWTValidationWithValidJWT(t *testing.T) {
+	validToken, err := CreateJWT("testuser")
+	if err != nil {
+		t.Errorf("Error creating JWT token")
+	}
+	if(!validateToken(validToken)){
+		t.Errorf("Token determined invalid according to validateToken")
+	}
+}
+
+func TestJWTValidationWithInvalidJWT(t *testing.T) {
+	invalidToken := "invalidtoken838165985613978657813"
+	if(validateToken(invalidToken)){
+		t.Errorf("Invalid token determined valid according to validateToken")
+	}
+}
